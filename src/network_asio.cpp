@@ -81,14 +81,22 @@ connection::connection(const std::string& host, const std::string& service)
 	, bytes_read_(0)
 {
 	boost::system::error_code ec;
-	auto result = resolver_.resolve(host, service, boost::asio::ip::resolver_query_base::numeric_host, ec);
+#if BOOST_VERSION >= 106600
+#define CAMPAIGND_HOST_SPECIFICATION host, service
+#define CAMPAIGND_HOST_SPECIFICATION_NUMERIC CAMPAIGND_HOST_SPECIFICATION, boost::asio::ip::resolver_query_base::numeric_host
+#else
+#define CAMPAIGND_HOST_SPECIFICATION boost::asio::ip::tcp::resolver::query(host, service)
+#define CAMPAIGND_HOST_SPECIFICATION_NUMERIC boost::asio::ip::tcp::resolver::query(host, service, boost::asio::ip::resolver_query_base::numeric_host)
+#endif
+	auto result = resolver_.resolve(CAMPAIGND_HOST_SPECIFICATION_NUMERIC, ec);
 	if(!ec) { // if numeric resolve succeeds then we got raw ip address so TLS host name validation would never pass
 		use_tls_ = false;
 		boost::asio::post(io_context_, [this, ec, result](){ handle_resolve(ec, { result } ); } );
 	} else {
-		resolver_.async_resolve(host, service, 
+		resolver_.async_resolve(CAMPAIGND_HOST_SPECIFICATION, 
 			std::bind(&connection::handle_resolve, this, std::placeholders::_1, std::placeholders::_2));
 	}
+#undef CAMPAIGND_HOST_SPECIFICATION
 
 	LOG_NW << "Resolving hostname: " << host << '\n';
 }
