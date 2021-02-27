@@ -97,6 +97,7 @@ connection::connection(const std::string& host, const std::string& service)
 			std::bind(&connection::handle_resolve, this, std::placeholders::_1, std::placeholders::_2));
 	}
 #undef CAMPAIGND_HOST_SPECIFICATION
+#undef CAMPAIGND_HOST_SPECIFICATION_NUMERIC
 
 	LOG_NW << "Resolving hostname: " << host << '\n';
 }
@@ -119,10 +120,11 @@ void connection::handle_connect(const boost::system::error_code& ec, endpoint en
 	} else {
 #if BOOST_VERSION >= 106600
 		LOG_NW << "Connected to " << endpoint.address() << '\n';
+		if(endpoint.address().is_loopback()) {
 #else
 		LOG_NW << "Connected to " << endpoint->endpoint().address() << '\n';
+		if(endpoint->endpoint().address().is_loopback()) {
 #endif
-		if(endpoint.address().is_loopback()) {
 			use_tls_ = false;
 		}
 		handshake();

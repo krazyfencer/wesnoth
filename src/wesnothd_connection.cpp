@@ -99,6 +99,7 @@ wesnothd_connection::wesnothd_connection(const std::string& host, const std::str
 	}
 
 #undef WESNOTHD_HOST_SPECIFICATION
+#undef WESNOTHD_HOST_SPECIFICATION_NUMERIC
 
 	// Starts the worker thread. Do this *after* the above async_resolve call or it will just exit immediately!
 	worker_thread_ = std::thread([this]() {
@@ -160,10 +161,11 @@ void wesnothd_connection::handle_connect(const boost::system::error_code& ec, en
 	} else {
 #if BOOST_VERSION >= 106600
 		LOG_NW << "Connected to " << endpoint.address() << '\n';
+		if(endpoint.address().is_loopback()) {
 #else
 		LOG_NW << "Connected to " << endpoint->endpoint().address() << '\n';
+		if(endpoint->endpoint().address().is_loopback()) {
 #endif
-		if(endpoint.address().is_loopback()) {
 			use_tls_ = false;
 		}
 		handshake();
