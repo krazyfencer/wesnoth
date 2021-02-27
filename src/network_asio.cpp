@@ -91,7 +91,13 @@ connection::connection(const std::string& host, const std::string& service)
 	auto result = resolver_.resolve(CAMPAIGND_HOST_SPECIFICATION_NUMERIC, ec);
 	if(!ec) { // if numeric resolve succeeds then we got raw ip address so TLS host name validation would never pass
 		use_tls_ = false;
-		boost::asio::post(io_context_, [this, ec, result](){ handle_resolve(ec, { result } ); } );
+#if BOOST_VERSION >= 106600
+		boost::asio::post(io_context_,
+#else
+		io_context_.post(
+#endif
+			[this, ec, result](){ handle_resolve(ec, { result } ); }
+		);
 	} else {
 		resolver_.async_resolve(CAMPAIGND_HOST_SPECIFICATION, 
 			std::bind(&connection::handle_resolve, this, std::placeholders::_1, std::placeholders::_2));
